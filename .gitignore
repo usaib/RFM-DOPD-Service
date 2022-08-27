@@ -7,6 +7,8 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+reactwork/
+uploads/
 .Python
 build/
 develop-eggs/

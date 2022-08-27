@@ -15,6 +15,12 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 rf = joblib.load('rf.pkl')
 symptomsDict=joblib.load('symptoms_dict.pkl')
+xRayDetector=tf.keras.models.load_model('mypro.h5')
+directory,filename = os.path.split( __file__ )
+
+
+
+
 
 def classifyImage(fileName):
     directory,filename = os.path.split( __file__ )
@@ -64,19 +70,28 @@ def uploadImage():
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            predictions=classifyImage(filename)
-            p=np.argmax(predictions)
-            print(p,predictions)
-            disease='Nothing Detected'
-            if p==0:
-                disease='Covid-19'
-            if p==1:
-                disease='Normal Chest'
-            if p==2:
-                disease='Pneumonia'
-            if p==3:
-                disease='Tuberculosis'
-            return jsonify({"msg": 'file Uploaded Successfully','predictions':predictions.tolist(),'disease':disease}),200
+            imgInput = tf.keras.preprocessing.image.load_img(directory+'/uploads/'+filename, target_size=(100, 100))
+            imageAdjusted=tf.reshape(imgInput,shape=[1,100,100,3])
+            classificationPrediction=xRayDetector.predict(imageAdjusted)
+            print(classificationPrediction)
+            if (classificationPrediction[0][0]>0.3):
+                predictions=classifyImage(filename)
+                p=np.argmax(predictions)
+                print(p,predictions)
+                disease='Nothing Detected'
+                if p==0:
+                    disease='Covid-19'
+                if p==1:
+                    disease='Normal Chest'
+                if p==2:
+                    disease='Pneumonia'
+                if p==3:
+                    disease='Tuberculosis'
+                return jsonify({"msg": 'file Uploaded Successfully','predictions':predictions.tolist(),'disease':disease,"success":True}),200
+            else:
+                return jsonify({"msg": 'Uploaded File is not an X-ray',"success":False}),200
+
+
 
 
 if __name__=='__main__':
